@@ -1,0 +1,32 @@
+Booking Date: Mon Sep 15 00:00:16 GMT+06:00 2025
+Customer: f
+Check-in: 14
+Days: 2
+Package: 2 Rooms
+Rooms: 2
+Total: $400
+----------------------------------------
+Booking Date: Mon Sep 15 00:10:01 GMT+06:00 2025
+Customer: d
+Check-in: 14
+Days: 34
+Package: 1 Room
+Rooms: 1
+Total: $3400
+----------------------------------------
+Booking Date: Mon Sep 15 00:10:47 GMT+06:00 2025
+Customer: fardin
+Check-in: 15
+Days: 7675
+Package: 3 Rooms
+Rooms: 3
+Total: $2302500
+----------------------------------------
+Booking Date: Mon Sep 15 00:21:58 GMT+06:00 2025
+Customer: 34
+Check-in: 34
+Days: 2
+Package: 2 Rooms
+Rooms: 2
+Total: $400
+----------------------------------------
