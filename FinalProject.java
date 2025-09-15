@@ -7,10 +7,11 @@ import java.util.*;
 public class FinalProject extends JFrame implements ActionListener, MouseListener {
     private JTextField nameField,dateField,dayField;
     private JButton confirmButton;
+    private JButton clearButton;
     private JButton[] roomButtons=new JButton[10];
     private JTextArea bookingInfoArea;
     private boolean[] roomOccupied=new boolean[10];
-    private int currentRoom=0;
+    private boolean[] roomSelected=new boolean[10];
     private final int ROOM_PRICE=100;
     private JComboBox<String> packageCombo;
     private JLabel totalLabel;
@@ -65,7 +66,7 @@ public class FinalProject extends JFrame implements ActionListener, MouseListene
         packageLabel.setSize(80,30);
         add(packageLabel);
 
-        String[] packages={"1 Room","2 Rooms","3 Rooms"};
+        String[] packages={"1 Room","2 Rooms","3 Rooms","4 Rooms","5 Rooms","6 Rooms","7 Rooms","8 Rooms","9 Rooms","10 Rooms"};
         packageCombo=new JComboBox<>(packages);
         packageCombo.setLocation(100,210);
         packageCombo.setSize(100,30);
@@ -77,6 +78,12 @@ public class FinalProject extends JFrame implements ActionListener, MouseListene
         confirmButton.addActionListener(this);
         confirmButton.addMouseListener(this);
         add(confirmButton);
+
+        clearButton=new JButton("Clear All");
+        clearButton.setLocation(455,170);
+        clearButton.setSize(100,30);
+        clearButton.addActionListener(this);
+        add(clearButton);
 
         totalLabel=new JLabel("Total: $0");
         totalLabel.setLocation(220,210);
@@ -114,54 +121,99 @@ public class FinalProject extends JFrame implements ActionListener, MouseListene
             String day=dayField.getText();
             
             if(!name.isEmpty() && !date.isEmpty() && !day.isEmpty()){
-                String selectedPackage=(String)packageCombo.getSelectedItem();
-                int numRooms=1;
-                if(selectedPackage.equals("2 Rooms")) numRooms=2;
-                else if(selectedPackage.equals("3 Rooms")) numRooms=3;
-                
-                if(currentRoom+numRooms<=10){
-                    int totalPrice=ROOM_PRICE*Integer.parseInt(day)*numRooms;
-                    
-                    bookingInfoArea.append("Hotel Booking\n");
-                    bookingInfoArea.append("Customer Name: "+name+"\n");
-                    bookingInfoArea.append("Check-in Date: "+date+"\n");
-                    bookingInfoArea.append("Number of Days: "+day+"\n");
-                    bookingInfoArea.append("Package: "+selectedPackage+"\n");
-                    
-                    for(int i=0;i<numRooms;i++){
-                        roomButtons[currentRoom].setBackground(new Color(255,0,0));
-                        roomOccupied[currentRoom]=true;
-                        bookingInfoArea.append("Room "+(currentRoom+1)+": $"+ROOM_PRICE+" x "+day+" days = $"+ROOM_PRICE*Integer.parseInt(day)+"\n");
-                        currentRoom++;
-                    }
-                    
-                    bookingInfoArea.append("Total Amount: $"+totalPrice+"\n");
-                    bookingInfoArea.append("\n");
-                    
-                    totalLabel.setText("Total: $"+totalPrice);
-                    
-                    saveBookingToFile(name,date,day,selectedPackage,numRooms,totalPrice);
-                    
-                    nameField.setText("");
-                    dateField.setText("");
-                    dayField.setText("");
-                }else{
-                    JOptionPane.showMessageDialog(this,"Not enough rooms available!");
+                int days;
+                try{ days=Integer.parseInt(day); }
+                catch(NumberFormatException nfe){
+                    JOptionPane.showMessageDialog(this,"Days must be a number");
+                    return;
                 }
+
+                int requiredCount=getRequiredRoomCount();
+                java.util.List<Integer> roomsToBook=new java.util.ArrayList<>();
+                for(int i=0;i<10;i++){
+                    if(roomSelected[i] && !roomOccupied[i]) roomsToBook.add(i);
+                }
+
+                if(roomsToBook.size()==0){
+                    JOptionPane.showMessageDialog(this,"Please select "+requiredCount+" room(s) by clicking the green buttons (they turn yellow)." );
+                    return;
+                }
+
+                if(roomsToBook.size()!=requiredCount){
+                    JOptionPane.showMessageDialog(this,"Selected "+roomsToBook.size()+" room(s). You must select exactly "+requiredCount+".");
+                    return;
+                }
+
+                int totalPrice=ROOM_PRICE*days*roomsToBook.size();
+
+                bookingInfoArea.append("Hotel Booking\n");
+                bookingInfoArea.append("Customer Name: "+name+"\n");
+                bookingInfoArea.append("Check-in Date: "+date+"\n");
+                bookingInfoArea.append("Number of Days: "+days+"\n");
+                bookingInfoArea.append("Rooms: ");
+
+                for(int idx=0; idx<roomsToBook.size(); idx++){
+                    int roomIndex=roomsToBook.get(idx);
+                    // Confirm booking
+                    roomButtons[roomIndex].setBackground(new Color(255,0,0));
+                    roomOccupied[roomIndex]=true;
+                    roomSelected[roomIndex]=false;
+                    bookingInfoArea.append(""+(roomIndex+1)+(idx<roomsToBook.size()-1?", ":"\n"));
+                }
+
+                for(int roomIndex: roomsToBook){
+                    bookingInfoArea.append("Room "+(roomIndex+1)+": $"+ROOM_PRICE+" x "+days+" days = $"+(ROOM_PRICE*days)+"\n");
+                }
+
+                bookingInfoArea.append("Total Amount: $"+totalPrice+"\n\n");
+
+                totalLabel.setText("Total: $"+totalPrice);
+
+                saveBookingToFile(name,date,String.valueOf(days),"Package-"+requiredCount,roomsToBook.size(),totalPrice,roomsToBook);
+
+                nameField.setText("");
+                dateField.setText("");
+                dayField.setText("");
             }else{
                 JOptionPane.showMessageDialog(this,"Please fill all fields!");
             }
+        }else if(e.getSource()==clearButton){
+            // Reset input fields
+            nameField.setText("");
+            dateField.setText("");
+            dayField.setText("");
+            if(packageCombo.getItemCount()>0){
+                packageCombo.setSelectedIndex(0);
+            }
+            // Deselect any selected rooms; keep booked rooms red, available to green
+            for(int i=0;i<10;i++){
+                if(!roomOccupied[i]){
+                    roomSelected[i]=false;
+                    roomButtons[i].setBackground(new Color(0,255,0));
+                }
+            }
+            totalLabel.setText("Total: $0");
+            bookingInfoArea.setText("");
         }else{
             for(int i=0;i<10;i++){
                 if(e.getSource()==roomButtons[i]){
-                    if(!roomOccupied[i]){
-                        roomButtons[i].setBackground(new Color(255,0,0));
-                        roomOccupied[i]=true;
-                        bookingInfoArea.append("Room "+(i+1)+" is now booked\n");
+                    if(roomOccupied[i]){
+                        JOptionPane.showMessageDialog(this,"Room "+(i+1)+" is already booked.");
                     }else{
-                        roomButtons[i].setBackground(new Color(0,255,0));
-                        roomOccupied[i]=false;
-                        bookingInfoArea.append("Room "+(i+1)+" is now available\n");
+                        int requiredCount=getRequiredRoomCount();
+                        int selectedCount=0;
+                        for(int j=0;j<10;j++) if(roomSelected[j]) selectedCount++;
+                        if(roomSelected[i]){
+                            roomSelected[i]=false;
+                            roomButtons[i].setBackground(new Color(0,255,0));
+                        }else{
+                            if(selectedCount>=requiredCount){
+                                JOptionPane.showMessageDialog(this,"You can select at most "+requiredCount+" room(s) for this package.");
+                            }else{
+                                roomSelected[i]=true;
+                                roomButtons[i].setBackground(Color.YELLOW);
+                            }
+                        }
                     }
                     break;
                 }
@@ -169,7 +221,18 @@ public class FinalProject extends JFrame implements ActionListener, MouseListene
         }
     }
 
-    private void saveBookingToFile(String name,String date,String day,String packageType,int numRooms,int totalPrice){
+    private int getRequiredRoomCount(){
+        String selectedPackage=(String)packageCombo.getSelectedItem();
+        if(selectedPackage==null||selectedPackage.isEmpty()) return 1;
+        if(selectedPackage.startsWith("10")) return 10;
+        try{
+            return Integer.parseInt(selectedPackage.substring(0,1));
+        }catch(Exception ex){
+            return 1;
+        }
+    }
+
+    private void saveBookingToFile(String name,String date,String day,String packageType,int numRooms,int totalPrice, java.util.List<Integer> rooms){
         try{
             FileWriter writer=new FileWriter("bookings.txt",true);
             writer.write("Booking Date: "+new Date()+"\n");
@@ -178,6 +241,12 @@ public class FinalProject extends JFrame implements ActionListener, MouseListene
             writer.write("Days: "+day+"\n");
             writer.write("Package: "+packageType+"\n");
             writer.write("Rooms: "+numRooms+"\n");
+            if(rooms!=null && !rooms.isEmpty()){
+                writer.write("Room Numbers: ");
+                for(int i=0;i<rooms.size();i++){
+                    writer.write((rooms.get(i)+1)+ (i<rooms.size()-1?", ":"\n"));
+                }
+            }
             writer.write("Total: $"+totalPrice+"\n");
             writer.write("----------------------------------------\n");
             writer.close();
